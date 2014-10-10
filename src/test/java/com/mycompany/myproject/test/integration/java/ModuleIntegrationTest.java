@@ -16,6 +16,7 @@ package com.mycompany.myproject.test.integration.java;/*
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 
+import com.mycompany.myproject.PingVerticle;
 import org.junit.Test;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
@@ -23,9 +24,12 @@ import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 import org.vertx.testtools.VertxAssert;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.vertx.testtools.VertxAssert.*;
 
 /**
@@ -41,10 +45,23 @@ public class ModuleIntegrationTest extends TestVerticle {
   @Test
   public void testPing() {
     container.logger().info("in testPing()");
-    vertx.eventBus().send("ping-address", "ping!", new Handler<Message<String>>() {
-      @Override
-      public void handle(Message<String> reply) {
-        assertEquals("pong!", reply.body());
+      JsonObject config = new JsonObject();
+      config.putString("address", PingVerticle.ADDRESS);
+      config.putString("metadata.broker.list", PingVerticle.DEFAULT_BROKER_LIST);
+      config.putString("kafka-topic", PingVerticle.DEFAULT_TOPIC);
+      config.putString("kafka-partition", PingVerticle.DEFAULT_PARTITION);
+      config.putNumber("request.required.acks", PingVerticle.DEFAULT_REQUEST_ACKS);
+      config.putString("serializer.class", PingVerticle.DEFAULT_KEY_SERIALIZER_CLASS);
+
+      container.deployModule("com.zanox.vertx~mod-kafka~1.1.2-SNAPSHOT", config);
+
+      JsonObject jsonObject = new JsonObject();
+      jsonObject.putString(PingVerticle.PAYLOAD, PingVerticle.MESSAGE);
+
+      vertx.eventBus().send(PingVerticle.ADDRESS, jsonObject, new Handler<Message<String>>() {
+          @Override
+          public void handle(Message<String> reply) {
+              assertEquals("pong!", reply.body());
 
         /*
         If we get here, the test is complete
@@ -52,9 +69,18 @@ public class ModuleIntegrationTest extends TestVerticle {
         we cannot assume the test is complete by the time the test method has finished executing like
         in standard synchronous tests
         */
-        testComplete();
-      }
-    });
+              testComplete();
+          }
+      });
+
+        /*
+        If we get here, the test is complete
+        You must always call `testComplete()` at the end. Remember that testing is *asynchronous* so
+        we cannot assume the test is complete by the time the test method has finished executing like
+        in standard synchronous tests
+        */
+        //testComplete();
+
   }
 
   @Test

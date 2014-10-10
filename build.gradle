@@ -57,6 +57,12 @@ dependencies {
 
 }
 
+repositories {
+    maven {
+        url "http://central.maven.org/maven2/"
+    }
+}
+
 test {
   /* Configure which tests are included
   include 'org/foo/**'
